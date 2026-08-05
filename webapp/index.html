@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Musya+ — твой личный трекер здоровья</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ЭКРАН: СЕГОДНЯ -->
+  <section id="screen-today" class="screen active">
+    <header class="header">
+      <div>
+        <h1 id="greeting-title">Привет кошка! 🌷</h1>
+        <div class="subtitle" id="today-date"></div>
+      </div>
+      <button class="icon-btn" data-nav="screen-more">⚙️</button>
+    </header>
+
+    <div class="card greeting-card">
+      <div class="greeting-quote" id="daily-quote">Загрузка совета дня...</div>
+    </div>
+
+    <div class="card prediction-card">
+      <div class="phase-pill" id="phase-pill">—</div>
+      <div id="prediction-text">Загрузка...</div>
+    </div>
+
+    <div class="card">
+      <p class="card-title mt-0">Как ты себя чувствуешь киса?</p>
+      <div class="mood-row" id="mood-row">
+        <button class="mood-btn" data-mood="great">😄</button>
+        <button class="mood-btn" data-mood="good">🙂</button>
+        <button class="mood-btn" data-mood="okay">😐</button>
+        <button class="mood-btn" data-mood="low">😔</button>
+        <button class="mood-btn" data-mood="bad">😣</button>
+        <button class="mood-btn" data-mood="angry">😤</button>
+      </div>
+
+      <label>Симптомы</label>
+      <div class="chip-wrap" id="symptom-chips"></div>
+
+      <label>Заметка о дне (необязательно)</label>
+      <textarea id="today-note" rows="2" placeholder="Как прошёл день?"></textarea>
+
+      <button class="primary-btn" id="save-today-btn">Сохранить</button>
+    </div>
+
+    <div class="card">
+      <p class="card-title mt-0">💧 Вода</p>
+      <div class="water-row">
+        <div class="water-glass"><div class="water-fill" id="water-fill" style="height:0%"></div></div>
+        <div class="water-info">
+          <div class="water-amount" id="water-amount">0 мл</div>
+          <div class="water-goal-label" id="water-goal-label">из 2000 мл</div>
+        </div>
+      </div>
+      <div class="water-btns">
+        <button class="water-btn" data-ml="200">+200</button>
+        <button class="water-btn" data-ml="300">+300</button>
+        <button class="water-btn" data-ml="500">+500</button>
+        <button class="water-btn reset" data-ml="reset">Сброс</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex-between">
+        <p class="card-title mt-0">🧘 Дыхательная пауза</p>
+      </div>
+      <p class="small-hint">2 минуты, чтобы снизить стресс и напряжение — техника 4-7-8.</p>
+      <button class="secondary-btn" data-nav="screen-breathing">Начать паузу</button>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: ДЫХАНИЕ -->
+  <section id="screen-breathing" class="screen">
+    <header class="header">
+      <button class="icon-btn" data-nav="screen-today">←</button>
+      <h1>Дыхательная пауза</h1>
+      <span style="width:38px"></span>
+    </header>
+    <div class="card">
+      <div class="breathing-wrap">
+        <div class="breathing-circle" id="breathing-circle">Начать</div>
+        <div class="breathing-caption" id="breathing-caption">
+          Нажми на круг, чтобы начать технику 4-7-8: вдох на 4 секунды,
+          задержка на 7, выдох на 8. Дыши вместе с кругом.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: ЦИКЛ -->
+  <section id="screen-cycle" class="screen">
+    <header class="header">
+      <h1>Мой цикл</h1>
+      <button class="icon-btn" data-nav="screen-settings">⚙️</button>
+    </header>
+
+    <div class="card">
+      <div class="calendar-nav">
+        <button id="prev-month" class="icon-btn">‹</button>
+        <span id="month-label"></span>
+        <button id="next-month" class="icon-btn">›</button>
+      </div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--rose)"></span>Месячные</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>Овуляция</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--sage-light)"></span>Фертильные дни</span>
+        <span class="legend-item"><span class="legend-dot" style="border:2px dashed var(--rose)"></span>Прогноз</span>
+      </div>
+      <p class="hint">Нажми на день, чтобы отметить месячные</p>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: НАСТРОЙКИ ЦИКЛА -->
+  <section id="screen-settings" class="screen">
+    <header class="header">
+      <button class="icon-btn" data-nav="screen-cycle">←</button>
+      <h1>Настройки цикла</h1>
+      <span style="width:38px"></span>
+    </header>
+    <div class="card">
+      <label>Длина цикла (дней)</label>
+      <input type="number" id="input-cycle-length" min="15" max="60" value="28">
+
+      <label>Длительность месячных (дней)</label>
+      <input type="number" id="input-period-length" min="1" max="15" value="5">
+
+      <label>Дата начала последних месячных</label>
+      <input type="date" id="input-last-period">
+
+      <button id="save-settings-btn" class="primary-btn">Сохранить</button>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: ЗАМЕТКИ -->
+  <section id="screen-notes" class="screen">
+    <header class="header">
+      <h1>Заметки</h1>
+      <button class="icon-btn" id="add-note-btn">➕</button>
+    </header>
+    <div class="chip-row" id="note-category-tabs">
+      <button class="chip active" data-cat="all">Все</button>
+      <button class="chip" data-cat="general">Общее</button>
+      <button class="chip" data-cat="health">Здоровье</button>
+      <button class="chip" data-cat="doctor">К врачу</button>
+      <button class="chip" data-cat="ideas">Идеи</button>
+    </div>
+    <div id="notes-list" class="list"></div>
+  </section>
+
+  <!-- ЭКРАН: НОВАЯ/РЕДАКТИРОВАНИЕ ЗАМЕТКИ -->
+  <section id="screen-note-edit" class="screen">
+    <header class="header">
+      <button class="icon-btn" id="note-edit-back-btn">←</button>
+      <h1>Новая заметка</h1>
+      <span style="width:38px"></span>
+    </header>
+    <div class="card">
+      <label>Категория</label>
+      <div class="chip-row" id="note-category-picker" style="margin-bottom:0;">
+        <button class="chip active" data-cat="general">Общее</button>
+        <button class="chip" data-cat="health">Здоровье</button>
+        <button class="chip" data-cat="doctor">К врачу</button>
+        <button class="chip" data-cat="ideas">Идеи</button>
+      </div>
+
+      <label>Заголовок</label>
+      <input type="text" id="input-note-title" placeholder="Например: Приём у врача">
+
+      <label>Текст</label>
+      <textarea id="input-note-content" rows="5" placeholder="Подробности..."></textarea>
+
+      <label>Напомнить об этом (необязательно)</label>
+      <input type="datetime-local" id="input-note-remind-at">
+
+      <button id="save-note-btn" class="primary-btn">Сохранить заметку</button>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: СТАТИСТИКА -->
+  <section id="screen-insights" class="screen">
+    <header class="header">
+      <h1>Статистика</h1>
+      <span style="width:38px"></span>
+    </header>
+
+    <div class="card">
+      <p class="card-title mt-0">Твой цикл</p>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-value" id="stat-avg-cycle">—</div>
+          <div class="stat-label">Средняя длина цикла</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-regularity">—</div>
+          <div class="stat-label">Регулярность</div>
+        </div>
+      </div>
+      <p class="small-hint" id="stat-cycles-tracked" style="margin-top:10px;"></p>
+    </div>
+
+    <div class="card">
+      <p class="card-title mt-0">Частые симптомы (90 дней)</p>
+      <div id="symptom-bars"></div>
+      <p class="empty-state" id="symptom-empty" style="display:none;">Пока нет данных — заполняй раздел «Сегодня», и здесь появится статистика 📈</p>
+    </div>
+
+    <div class="card">
+      <div class="flex-between">
+        <p class="card-title mt-0">⚖️ Вес</p>
+      </div>
+      <div class="water-row" style="margin-bottom:8px;">
+        <input type="number" id="input-weight" placeholder="напр. 62.5" step="0.1" style="flex:1;">
+        <button class="water-btn" id="add-weight-btn" style="flex:0.6; height:44px;">Добавить</button>
+      </div>
+      <div class="weight-chart" id="weight-chart"></div>
+      <p class="empty-state" id="weight-empty" style="display:none;">Добавь первую запись веса, чтобы увидеть график.</p>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: НАПОМИНАНИЯ -->
+  <section id="screen-reminders" class="screen">
+    <header class="header">
+      <button class="icon-btn" data-nav="screen-more">←</button>
+      <h1>Напоминания</h1>
+      <span style="width:38px"></span>
+    </header>
+    <div id="reminders-list" class="list"></div>
+    <p class="hint" style="padding: 0 4px;">
+      В указанное время я пришлю тебе сообщение прямо в этот чат с ботом.
+    </p>
+  </section>
+
+  <!-- ЭКРАН: ЕЩЁ -->
+  <section id="screen-more" class="screen">
+    <header class="header">
+      <h1>Ещё</h1>
+      <span style="width:38px"></span>
+    </header>
+
+    <div class="menu-list">
+      <div class="menu-item" data-nav="screen-reminders">
+        <span class="menu-icon">🔔</span>
+        <div class="menu-text">
+          <div class="menu-title">Напоминания</div>
+          <div class="menu-sub">Все запланированные уведомления</div>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="menu-item" data-nav="screen-settings">
+        <span class="menu-icon">🩷</span>
+        <div class="menu-text">
+          <div class="menu-title">Настройки цикла</div>
+          <div class="menu-sub">Длина цикла, месячных, дата старта</div>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <p class="card-title mt-0">💧 Цель по воде</p>
+      <label class="mt-0">Сколько мл в день?</label>
+      <input type="number" id="input-water-goal" step="100" min="500" max="5000">
+      <button class="secondary-btn" id="save-water-goal-btn">Сохранить цель</button>
+    </div>
+
+    <div class="card">
+      <p class="card-title mt-0">🎨 Тема оформления</p>
+      <div class="theme-row">
+        <div class="theme-opt" data-theme="auto">Как в Telegram</div>
+        <div class="theme-opt" data-theme="light">Светлая</div>
+        <div class="theme-opt" data-theme="dark">Тёмная</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title mt-0">💌 Немного заботы</p>
+      <p class="small-hint">Я очень сильно люблю тебя моя муся маруся🌸</p>
+    </div>
+  </section>
+
+  <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-screen="screen-today">
+      <span class="nav-icon">🌷</span><span>Сегодня</span>
+    </button>
+    <button class="nav-btn" data-screen="screen-cycle">
+      <span class="nav-icon">🌸</span><span>Цикл</span>
+    </button>
+    <button class="nav-btn" data-screen="screen-notes">
+      <span class="nav-icon">📝</span><span>Заметки</span>
+    </button>
+    <button class="nav-btn" data-screen="screen-insights">
+      <span class="nav-icon">📊</span><span>Статистика</span>
+    </button>
+    <button class="nav-btn" data-screen="screen-more">
+      <span class="nav-icon">⚙️</span><span>Ещё</span>
+    </button>
+  </nav>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
