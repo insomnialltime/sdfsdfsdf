@@ -17,6 +17,7 @@
 """
 
 import aiosqlite
+import random
 from datetime import datetime, date, timedelta
 from collections import Counter
 
@@ -91,6 +92,23 @@ async def init_db():
                 date TEXT NOT NULL,
                 weight REAL NOT NULL,
                 UNIQUE(user_id, date)
+            )
+        """)
+        # partner_links — доступ "партнёра" на просмотр цикла/заметок.
+        # Владелица (owner_id) сама создаёт код (status='pending'), затем
+        # партнёр (partner_id) вводит его в своём приложении (status='active').
+        # Отключить доступ может как владелица, так и сам партнёр — тогда
+        # status='revoked' и данные больше не отдаются.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS partner_links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id INTEGER NOT NULL,
+                partner_id INTEGER,
+                code TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                code_expires_at TEXT,
+                created_at TEXT,
+                linked_at TEXT
             )
         """)
 
@@ -431,4 +449,103 @@ async def get_due_reminders(now_iso: str):
 async def mark_reminder_sent(reminder_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE reminders SET is_sent = 1 WHERE id = ?", (reminder_id,))
+        await db.commit()
+
+
+# ---------- Партнёрский доступ ----------
+
+def _generate_partner_code() -> str:
+    return "".join(random.choices("0123456789", k=6))
+
+
+async def create_partner_invite(owner_id: int, ttl_minutes: int = 30):
+    """
+    Владелица нажимает 'Создать код' — это её собственное явное действие
+    в интерфейсе. Любой предыдущий неиспользованный код аннулируется.
+    Активную (уже подключённую) связь этот вызов не трогает —
+    её нужно отдельно отключить через revoke_partner_link.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "DELETE FROM partner_links WHERE owner_id = ? AND status = 'pending'", (owner_id,)
+        )
+        code = _generate_partner_code()
+        expires_at = (datetime.utcnow() + timedelta(minutes=ttl_minutes)).isoformat()
+        await db.execute("""
+            INSERT INTO partner_links (owner_id, code, status, code_expires_at, created_at)
+            VALUES (?, ?, 'pending', ?, ?)
+        """, (owner_id, code, expires_at, datetime.utcnow().isoformat()))
+        await db.commit()
+        return {"code": code, "expires_at": expires_at}
+
+
+async def redeem_partner_code(partner_id: int, code: str) -> dict:
+    """Партнёр вводит код в своём приложении. Возвращает owner_id либо код ошибки."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT * FROM partner_links WHERE code = ? AND status = 'pending'", (code,)
+        )
+        row = await cursor.fetchone()
+        if not row:
+            return {"error": "not_found"}
+        if row["owner_id"] == partner_id:
+            return {"error": "self"}
+        if datetime.fromisoformat(row["code_expires_at"]) < datetime.utcnow():
+            return {"error": "expired"}
+        await db.execute("""
+            UPDATE partner_links SET partner_id = ?, status = 'active', linked_at = ?
+            WHERE id = ?
+        """, (partner_id, datetime.utcnow().isoformat(), row["id"]))
+        await db.commit()
+        return {"owner_id": row["owner_id"]}
+
+
+async def get_owner_link_status(owner_id: int):
+    """Для экрана 'Доступ к моим данным' — есть ли активный код или подключённый партнёр."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("""
+            SELECT pl.*, u.username AS partner_username
+            FROM partner_links pl
+            LEFT JOIN users u ON u.user_id = pl.partner_id
+            WHERE pl.owner_id = ? AND pl.status IN ('pending', 'active')
+            ORDER BY pl.id DESC LIMIT 1
+        """, (owner_id,))
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+
+async def get_partner_link_for_partner(partner_id: int):
+    """Для экрана 'Доступ, который есть у меня' — чей цикл я сейчас вижу."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("""
+            SELECT pl.*, u.username AS owner_username
+            FROM partner_links pl
+            LEFT JOIN users u ON u.user_id = pl.owner_id
+            WHERE pl.partner_id = ? AND pl.status = 'active'
+            ORDER BY pl.id DESC LIMIT 1
+        """, (partner_id,))
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+
+async def revoke_partner_link(owner_id: int):
+    """Владелица сама отключает доступ (в т.ч. отменяет ещё не введённый код)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            UPDATE partner_links SET status = 'revoked'
+            WHERE owner_id = ? AND status IN ('pending', 'active')
+        """, (owner_id,))
+        await db.commit()
+
+
+async def leave_partner_link(partner_id: int):
+    """Партнёр сам отключается от просмотра чужих данных."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            UPDATE partner_links SET status = 'revoked'
+            WHERE partner_id = ? AND status = 'active'
+        """, (partner_id,))
         await db.commit()

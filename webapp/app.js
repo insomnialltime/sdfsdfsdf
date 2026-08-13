@@ -54,6 +54,8 @@ function showScreen(id) {
   if (id === "screen-reminders") loadReminders();
   if (id === "screen-insights") loadInsights();
   if (id === "screen-more") loadMoreScreenState();
+  if (id === "screen-partner") loadPartnerScreen();
+  if (id === "screen-partner-view") loadPartnerView();
 }
 
 document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -80,6 +82,37 @@ const QUOTES = [
   "Даже маленький стакан воды — это уже забота о себе прямо сейчас.",
   "Ты справляешься лучше, чем тебе кажется.",
   "Позволь себе отдохнуть без чувства вины — тело скажет спасибо.",
+  "Не всё нужно успевать сегодня. Часть дел подождёт до завтра.",
+  "Твоё настроение имеет право быть любым — не только хорошим.",
+  "Маленький шаг вперёд — тоже шаг. Не обесценивай его.",
+  "Тело меняется каждый день цикла — это не слабость, а норма.",
+  "Разреши себе один момент тишины сегодня, без телефона и задач.",
+  "Ты не обязана объяснять всем, почему тебе тяжело именно сегодня.",
+  "Забота о себе — это последовательность маленьких решений, а не один большой рывок.",
+  "Хорошее самочувствие строится из мелочей: сна, воды, движения, тепла.",
+  "Твои границы важны — даже если кому-то неудобно их слышать.",
+  "Сравнение своего цикла с 'нормой' в интернете редко помогает — доверяй своим ощущениям.",
+  "Можно ничего не хотеть делать сегодня. Это нормально.",
+  "Отмечать симптомы — это забота, а не жалобы.",
+  "Ты имеешь право на плохой день без чувства вины.",
+  "Твоё тело меняется циклично — и это не повод его критиковать.",
+  "Иногда лучшая продуктивность — это разрешить себе отдохнуть.",
+  "Записывать мысли — хороший способ разгрузить голову.",
+  "У тебя есть право на паузу в любой день цикла.",
+  "Забота о себе выглядит по-разному каждый день — и это нормально.",
+];
+
+const CYCLE_FACTS = [
+  "Средняя длина цикла у большинства людей — от 21 до 35 дней, и это всё считается нормой.",
+  "Овуляция обычно происходит примерно за 14 дней до начала следующих месячных, а не строго в середине цикла.",
+  "Цикл может немного сбиваться из-за стресса, смены часовых поясов или недосыпа — это не всегда повод для тревоги.",
+  "Базальная температура тела чуть повышается после овуляции — на этом основаны некоторые методы отслеживания.",
+  "ПМС может проявляться по-разному от цикла к циклу — это не значит, что что-то идёт не так.",
+  "Уровень энергии часто выше в фолликулярной фазе — хорошее время для новых начинаний.",
+  "Тяга к сладкому перед месячными частично связана с колебаниями серотонина.",
+  "У цикла нет 'эталонной' длины — важнее твоя собственная стабильная норма.",
+  "Железо теряется во время месячных — продукты, богатые железом, могут помочь самочувствию.",
+  "Лёгкая физическая активность может облегчать спазмы за счёт улучшения кровообращения.",
 ];
 
 function dayOfYear(d) {
@@ -103,6 +136,11 @@ function renderGreeting() {
 
   const quote = QUOTES[dayOfYear(new Date()) % QUOTES.length];
   document.getElementById("daily-quote").textContent = quote;
+
+  const factEl = document.getElementById("daily-fact");
+  if (factEl) {
+    factEl.textContent = CYCLE_FACTS[dayOfYear(new Date()) % CYCLE_FACTS.length];
+  }
 }
 
 // ==============================
@@ -603,8 +641,32 @@ async function loadReminders() {
 // ==============================
 // ЭКРАН "СТАТИСТИКА"
 // ==============================
+const ACHIEVEMENTS = [
+  { id: "first_step", icon: "🌱", title: "Первые шаги", check: d => d.symptoms.days_logged >= 1 || d.cycle.cycles_tracked >= 1 },
+  { id: "week_diary", icon: "📓", title: "Неделя дневника", check: d => d.symptoms.days_logged >= 7 },
+  { id: "steady", icon: "📈", title: "Постоянство", check: d => d.cycle.cycles_tracked >= 3 },
+  { id: "weight", icon: "⚖️", title: "Следишь за весом", check: d => d.weight_logs.length >= 1 },
+  { id: "month", icon: "🌙", title: "Месяц с приложением", check: d => d.symptoms.days_logged >= 30 },
+];
+
+function renderAchievements(data) {
+  const wrap = document.getElementById("achievements-wrap");
+  if (!wrap) return;
+  wrap.innerHTML = ACHIEVEMENTS.map(a => {
+    const unlocked = a.check(data);
+    return `
+      <div class="achievement-badge ${unlocked ? "unlocked" : ""}">
+        <span class="achievement-icon">${a.icon}</span>
+        <span class="achievement-title">${a.title}</span>
+      </div>
+    `;
+  }).join("");
+}
+
 async function loadInsights() {
   const data = await api("/api/insights");
+
+  renderAchievements(data);
 
   document.getElementById("stat-avg-cycle").textContent =
     data.cycle.average_cycle_length ? `${data.cycle.average_cycle_length} дн.` : "—";
@@ -720,6 +782,193 @@ function applyTheme(theme, persist) {
 document.querySelectorAll(".theme-opt").forEach(opt => {
   opt.addEventListener("click", () => applyTheme(opt.dataset.theme, true));
 });
+
+// ==============================
+// Партнёр — доступ к данным по коду
+// ==============================
+
+async function loadPartnerScreen() {
+  const container = document.getElementById("partner-content");
+  container.innerHTML = `<p class="hint">Загрузка...</p>`;
+
+  let status;
+  try {
+    status = await api("/api/partner/status");
+  } catch (err) {
+    container.innerHTML = `<p class="hint">Не удалось загрузить: ${escapeHtml(err.message)}</p>`;
+    return;
+  }
+
+  const asOwner = status.as_owner;
+  const asPartner = status.as_partner;
+
+  let ownerBlock;
+  if (asOwner && asOwner.status === "active") {
+    ownerBlock = `
+      <div class="partner-status-row">
+        <span class="partner-status-dot active"></span>
+        <span>Доступ есть у <b>${escapeHtml(asOwner.partner_username || "пользователя")}</b></span>
+      </div>
+      <p class="small-hint">Партнёр видит: календарь цикла, статистику симптомов и заметки. Ты можешь отключить это в любой момент.</p>
+      <button class="secondary-btn danger-btn" id="partner-revoke-btn">Отключить доступ</button>
+    `;
+  } else if (asOwner && asOwner.status === "pending") {
+    ownerBlock = `
+      <p class="small-hint">Покажи этот код человеку, которому хочешь открыть доступ. Код действует 30 минут и одноразовый.</p>
+      <div class="partner-code">${asOwner.code.split("").join(" ")}</div>
+      <button class="secondary-btn" id="partner-regenerate-btn">Создать новый код</button>
+    `;
+  } else {
+    ownerBlock = `
+      <p class="small-hint">Создай код, чтобы открыть близкому человеку доступ на чтение — календарь цикла, статистику и заметки. Отключить можно в любой момент.</p>
+      <button class="primary-btn" id="partner-generate-btn">Создать код доступа</button>
+    `;
+  }
+
+  let partnerBlock;
+  if (asPartner) {
+    partnerBlock = `
+      <div class="partner-status-row">
+        <span class="partner-status-dot active"></span>
+        <span>Тебе открыт доступ к данным <b>${escapeHtml(asPartner.owner_username || "пользователя")}</b></span>
+      </div>
+      <button class="primary-btn" id="partner-open-view-btn">Открыть</button>
+      <button class="secondary-btn danger-btn" id="partner-leave-btn" style="margin-top:8px;">Отключиться</button>
+    `;
+  } else {
+    partnerBlock = `
+      <p class="small-hint">Если тебе дали код — введи его здесь, чтобы увидеть цикл и заметки.</p>
+      <input type="text" id="partner-code-input" placeholder="Например: 482913" maxlength="6" inputmode="numeric">
+      <button class="primary-btn" id="partner-redeem-btn">Подключиться</button>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="card">
+      <p class="card-title mt-0">🩷 Доступ к моим данным</p>
+      ${ownerBlock}
+    </div>
+    <div class="card">
+      <p class="card-title mt-0">👀 Доступ, который есть у меня</p>
+      ${partnerBlock}
+    </div>
+  `;
+
+  const bind = (id, handler) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("click", handler);
+  };
+
+  bind("partner-generate-btn", async () => {
+    try { await api("/api/partner/generate-code", { method: "POST" }); loadPartnerScreen(); }
+    catch (err) { tg.showAlert("Ошибка: " + err.message); }
+  });
+
+  bind("partner-regenerate-btn", async () => {
+    try { await api("/api/partner/generate-code", { method: "POST" }); loadPartnerScreen(); }
+    catch (err) { tg.showAlert("Ошибка: " + err.message); }
+  });
+
+  bind("partner-revoke-btn", () => {
+    tg.showConfirm("Отключить доступ к твоим данным?", async (confirmed) => {
+      if (!confirmed) return;
+      try { await api("/api/partner/revoke", { method: "POST" }); loadPartnerScreen(); }
+      catch (err) { tg.showAlert("Ошибка: " + err.message); }
+    });
+  });
+
+  bind("partner-leave-btn", () => {
+    tg.showConfirm("Отключиться от просмотра этих данных?", async (confirmed) => {
+      if (!confirmed) return;
+      try { await api("/api/partner/leave", { method: "POST" }); loadPartnerScreen(); }
+      catch (err) { tg.showAlert("Ошибка: " + err.message); }
+    });
+  });
+
+  bind("partner-open-view-btn", () => showScreen("screen-partner-view"));
+
+  bind("partner-redeem-btn", async () => {
+    const input = document.getElementById("partner-code-input");
+    const code = input.value.trim();
+    if (!code) return;
+    try {
+      await api("/api/partner/redeem", { method: "POST", body: JSON.stringify({ code }) });
+      loadPartnerScreen();
+    } catch (err) {
+      tg.showAlert(err.message.replace(/^API error \d+: /, ""));
+    }
+  });
+}
+
+async function loadPartnerView() {
+  const titleEl = document.getElementById("partner-view-title");
+  const container = document.getElementById("partner-view-content");
+  container.innerHTML = `<p class="hint">Загрузка...</p>`;
+
+  let data;
+  try {
+    data = await api("/api/partner/view");
+  } catch (err) {
+    container.innerHTML = `<p class="hint">${escapeHtml(err.message.replace(/^API error \d+: /, ""))}</p>`;
+    return;
+  }
+
+  titleEl.textContent = data.owner_username ? `Цикл: ${data.owner_username}` : "Цикл";
+
+  const insights = data.insights || {};
+  const symptoms = data.symptoms || {};
+  const periodDays = (data.period_days || []).slice(-10).reverse();
+  const notes = data.notes || [];
+
+  container.innerHTML = `
+    <div class="card">
+      <p class="card-title mt-0">Статистика цикла</p>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-value">${insights.average_cycle_length ?? "—"}</div>
+          <div class="stat-label">Средняя длина цикла</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value">${insights.regularity ?? "—"}</div>
+          <div class="stat-label">Регулярность</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title mt-0">Последние дни месячных</p>
+      ${periodDays.length
+        ? `<div class="chip-wrap">${periodDays.map(d => `<span class="chip static">${d}</span>`).join("")}</div>`
+        : `<p class="empty-state">Пока нет отметок</p>`}
+    </div>
+
+    <div class="card">
+      <p class="card-title mt-0">Частые симптомы (90 дней)</p>
+      ${symptoms.top_symptoms && symptoms.top_symptoms.length
+        ? symptoms.top_symptoms.map(([name, count]) => `
+            <div class="list-item">
+              <div class="list-item-content">
+                <div class="list-item-title">${escapeHtml(name)}</div>
+              </div>
+              <span class="note-category-badge">${count}</span>
+            </div>`).join("")
+        : `<p class="empty-state">Нет данных</p>`}
+    </div>
+
+    <div class="card">
+      <p class="card-title mt-0">Заметки</p>
+      ${notes.length
+        ? notes.map(n => `
+            <div class="list-item">
+              <div class="list-item-content">
+                <div class="list-item-title">${n.pinned ? "📌 " : ""}${escapeHtml(n.title)}</div>
+                <div class="list-item-sub">${escapeHtml(n.content || "")}</div>
+              </div>
+            </div>`).join("")
+        : `<p class="empty-state">Заметок пока нет</p>`}
+    </div>
+  `;
+}
 
 // ==============================
 // Старт приложения

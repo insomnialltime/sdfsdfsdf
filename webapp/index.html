@@ -30,6 +30,11 @@
       <div id="prediction-text">Загрузка...</div>
     </div>
 
+    <div class="card fact-card">
+      <p class="card-title mt-0">🌿 Знаешь ли ты</p>
+      <div id="daily-fact">Загрузка факта дня...</div>
+    </div>
+
     <div class="card">
       <p class="card-title mt-0">Как ты себя чувствуешь киса?</p>
       <div class="mood-row" id="mood-row">
@@ -192,6 +197,11 @@
     </header>
 
     <div class="card">
+      <p class="card-title mt-0">🏵️ Твой путь</p>
+      <div id="achievements-wrap" class="achievements-wrap"></div>
+    </div>
+
+    <div class="card">
       <p class="card-title mt-0">Твой цикл</p>
       <div class="stat-grid">
         <div class="stat-box">
@@ -262,6 +272,14 @@
         </div>
         <span class="chevron">›</span>
       </div>
+      <div class="menu-item" data-nav="screen-partner">
+        <span class="menu-icon">💞</span>
+        <div class="menu-text">
+          <div class="menu-title">Партнёр</div>
+          <div class="menu-sub">Поделиться доступом к своим данным</div>
+        </div>
+        <span class="chevron">›</span>
+      </div>
     </div>
 
     <div class="card" style="margin-top:16px;">
@@ -284,6 +302,26 @@
       <p class="card-title mt-0">💌 Немного заботы</p>
       <p class="small-hint">Я очень сильно люблю тебя моя муся маруся🌸</p>
     </div>
+  </section>
+
+  <!-- ЭКРАН: ПАРТНЁР -->
+  <section id="screen-partner" class="screen">
+    <header class="header">
+      <button class="icon-btn" data-nav="screen-more">←</button>
+      <h1>Партнёр</h1>
+      <span style="width:38px"></span>
+    </header>
+    <div id="partner-content"></div>
+  </section>
+
+  <!-- ЭКРАН: ПРОСМОТР ДАННЫХ ПАРТНЁРА (только чтение) -->
+  <section id="screen-partner-view" class="screen">
+    <header class="header">
+      <button class="icon-btn" data-nav="screen-partner">←</button>
+      <h1 id="partner-view-title">Цикл</h1>
+      <span style="width:38px"></span>
+    </header>
+    <div id="partner-view-content"></div>
   </section>
 
   <!-- НИЖНЯЯ НАВИГАЦИЯ -->

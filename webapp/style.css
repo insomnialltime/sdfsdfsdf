@@ -442,3 +442,113 @@ textarea { resize: vertical; }
 .mt-0 { margin-top: 0 !important; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .small-hint { font-size: 12px; color: var(--hint); }
+
+/* ============================================================
+   ПАРТНЁР — доступ по коду
+   ============================================================ */
+.partner-code {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-align: center;
+  color: var(--rose-deep);
+  background: linear-gradient(135deg, var(--rose-light), var(--lavender-light));
+  border-radius: 16px;
+  padding: 18px 10px;
+  margin: 12px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.partner-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.partner-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--hint);
+  flex-shrink: 0;
+}
+.partner-status-dot.active {
+  background: var(--sage);
+  box-shadow: 0 0 0 4px var(--sage-light);
+}
+
+.danger-btn {
+  color: var(--rose-deep);
+  border-color: var(--rose-light);
+}
+.danger-btn:active { background: var(--rose-soft); }
+
+.chip.static {
+  cursor: default;
+  background: var(--rose-soft);
+  color: var(--rose-deep);
+}
+
+#partner-code-input {
+  text-align: center;
+  font-size: 20px;
+  letter-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Карточка "Знаешь ли ты" ---------- */
+.fact-card {
+  background: linear-gradient(135deg, var(--sage-light), var(--lavender-light));
+}
+.fact-card #daily-fact { font-size: 14px; line-height: 1.5; color: var(--text); }
+
+/* ---------- Достижения (мягкие, без давления) ---------- */
+.achievements-wrap {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.achievement-badge {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 78px;
+  padding: 10px 6px;
+  border-radius: 14px;
+  background: var(--rose-soft);
+  opacity: 0.45;
+  filter: grayscale(0.6);
+  transition: opacity 0.25s ease, filter 0.25s ease, transform 0.15s ease;
+  text-align: center;
+}
+.achievement-badge.unlocked {
+  opacity: 1;
+  filter: none;
+  background: linear-gradient(135deg, var(--rose-light), var(--gold-light));
+}
+.achievement-icon { font-size: 24px; }
+.achievement-title { font-size: 10.5px; font-weight: 600; line-height: 1.2; color: var(--text); }
+
+/* ---------- Микро-взаимодействия ---------- */
+.primary-btn:active,
+.secondary-btn:active,
+.icon-btn:active,
+.water-btn:active {
+  transform: scale(0.96);
+}
+.mood-btn {
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.mood-btn.selected {
+  transform: scale(1.12);
+}
+.chip {
+  transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease;
+}
+.chip.active { transform: scale(1.04); }

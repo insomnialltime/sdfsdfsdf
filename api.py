@@ -97,6 +97,10 @@ class ThemeIn(BaseModel):
     theme: str
 
 
+class PartnerRedeemIn(BaseModel):
+    code: str
+
+
 # ---------- Цикл ----------
 
 @app.get("/api/cycle")
@@ -224,6 +228,68 @@ async def api_create_reminder(data: ReminderIn, user_id: int = Depends(get_curre
 async def api_delete_reminder(reminder_id: int, user_id: int = Depends(get_current_user)):
     await db.delete_reminder(user_id, reminder_id)
     return {"ok": True}
+
+
+# ---------- Партнёрский доступ ----------
+# Владелица сама создаёт код в своём интерфейсе и сама решает, кому его дать.
+# Партнёр получает только чтение (цикл, статистика, заметки) и только пока
+# доступ не отключён — владелицей или им самим.
+
+@app.post("/api/partner/generate-code")
+async def api_partner_generate_code(user_id: int = Depends(get_current_user)):
+    return await db.create_partner_invite(user_id)
+
+
+@app.get("/api/partner/status")
+async def api_partner_status(user_id: int = Depends(get_current_user)):
+    return {
+        "as_owner": await db.get_owner_link_status(user_id),
+        "as_partner": await db.get_partner_link_for_partner(user_id),
+    }
+
+
+@app.post("/api/partner/redeem")
+async def api_partner_redeem(data: PartnerRedeemIn, user_id: int = Depends(get_current_user)):
+    result = await db.redeem_partner_code(user_id, data.code.strip())
+    if "error" in result:
+        messages = {
+            "not_found": "Код не найден или уже использован",
+            "self": "Нельзя ввести собственный код",
+            "expired": "Срок действия кода истёк, попроси новый",
+        }
+        raise HTTPException(status_code=400, detail=messages.get(result["error"], "Неверный код"))
+    return {"ok": True, "owner_id": result["owner_id"]}
+
+
+@app.post("/api/partner/revoke")
+async def api_partner_revoke(user_id: int = Depends(get_current_user)):
+    """Владелица отключает доступ к своим данным."""
+    await db.revoke_partner_link(user_id)
+    return {"ok": True}
+
+
+@app.post("/api/partner/leave")
+async def api_partner_leave(user_id: int = Depends(get_current_user)):
+    """Партнёр сам отключается от просмотра чужих данных."""
+    await db.leave_partner_link(user_id)
+    return {"ok": True}
+
+
+@app.get("/api/partner/view")
+async def api_partner_view(user_id: int = Depends(get_current_user)):
+    link = await db.get_partner_link_for_partner(user_id)
+    if not link:
+        raise HTTPException(status_code=403, detail="Нет активного доступа к чьим-либо данным")
+    owner_id = link["owner_id"]
+    owner = await db.get_user(owner_id)
+    return {
+        "owner_username": owner.get("username") if owner else None,
+        "settings": owner,
+        "period_days": await db.get_period_days(owner_id),
+        "insights": await db.get_cycle_insights(owner_id),
+        "symptoms": await db.get_symptom_stats(owner_id),
+        "notes": await db.get_notes(owner_id),
+    }
 
 
 # Отдаём файлы вебаппа. Должно быть подключено ПОСЛЕДНИМ,
