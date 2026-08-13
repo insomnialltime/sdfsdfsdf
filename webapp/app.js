@@ -809,18 +809,18 @@ async function loadPartnerScreen() {
         <span class="partner-status-dot active"></span>
         <span>Доступ есть у <b>${escapeHtml(asOwner.partner_username || "пользователя")}</b></span>
       </div>
-      <p class="small-hint">Партнёр видит: календарь цикла, статистику симптомов и заметки. Ты можешь отключить это в любой момент.</p>
+      <p class="small-hint">:Я вижу календарь цикла, статистику симптомов и заметки. Ты можешь отключить это в любой момент.</p>
       <button class="secondary-btn danger-btn" id="partner-revoke-btn">Отключить доступ</button>
     `;
   } else if (asOwner && asOwner.status === "pending") {
     ownerBlock = `
-      <p class="small-hint">Покажи этот код человеку, которому хочешь открыть доступ. Код действует 30 минут и одноразовый.</p>
+      <p class="small-hint">Для того чтобы я мог видеть твою статистику скажи мне этот код. Код действует 30 минут и одноразовый.</p>
       <div class="partner-code">${asOwner.code.split("").join(" ")}</div>
       <button class="secondary-btn" id="partner-regenerate-btn">Создать новый код</button>
     `;
   } else {
     ownerBlock = `
-      <p class="small-hint">Создай код, чтобы открыть близкому человеку доступ на чтение — календарь цикла, статистику и заметки. Отключить можно в любой момент.</p>
+      <p class="small-hint">Создай код, чтобы открыть мне доступ на чтение — календарь цикла, статистику и заметки. Отключить можно в любой момент.</p>
       <button class="primary-btn" id="partner-generate-btn">Создать код доступа</button>
     `;
   }
@@ -837,7 +837,7 @@ async function loadPartnerScreen() {
     `;
   } else {
     partnerBlock = `
-      <p class="small-hint">Если тебе дали код — введи его здесь, чтобы увидеть цикл и заметки.</p>
+      <p class="small-hint">Поле для ввода кода</p>
       <input type="text" id="partner-code-input" placeholder="Например: 482913" maxlength="6" inputmode="numeric">
       <button class="primary-btn" id="partner-redeem-btn">Подключиться</button>
     `;
